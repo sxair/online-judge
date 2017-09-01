@@ -16,14 +16,14 @@
 
 extern long name;
 extern unsigned int judge_for;
-extern unsigned status_id, problem_id;
+extern unsigned status_id, true_problem_id;
 extern int lang, time_limit, memory_limit, time_used, memory_used, spj, judge_cnt, time_limit_second;
 extern MYSQL *conn;
 
 void write_file(const char *, const char *, ...) ;
 long get_file_size(const char *) ;
 int get_proc_status(int, const char *) ;
-int run_test(int (*)(const char *)) ;
+int run_test() ;
 
 int c_solve() ;
 

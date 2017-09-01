@@ -2,7 +2,7 @@
 #define CONFIG_H_INCLUDED
 
 #define DB_HOST  "127.0.0.1"
-#define DB_NAME  "oj"
+#define DB_NAME  "soj"
 #define DB_USER  "root"
 #define DB_PWD   "zx"
 #define DB_PORT  3306
@@ -29,9 +29,9 @@
 #define OJ_PE 7
 #define OJ_AC 8
 #define OJ_RE 10
-#define OJ_OF 11
-#define OJ_AS 12
-#define OJ_DZ 13
+#define OJ_SF 11 //Segmentation fault sig:11
+#define OJ_FP 12 //Floating Point Exception sig:8
+#define OJ_SC 13 //not all SYSTEM CALL
 
 #define OJ_TEST_MAX 10000
 #define OJ_RUN_TIME 120
