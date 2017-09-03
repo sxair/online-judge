@@ -40,6 +40,7 @@ void set_status(int status) {
 
         if(status == OJ_AC) {
             execsql("UPDATE `oj_problems` SET `accepted`= `accepted` + 1 WHERE id=%u", problem_id);
+            execsql("UPDATE `user_infos` SET `accepted`= `accepted` + 1 WHERE id=%u", user_id);
             execsql("UPDATE `oj_problem_infos` SET `ac_user`= `ac_user` + 1 WHERE id=%u AND EXISTS(SELECT * FROM `oj_solved_problems` \
 WHERE `user_id`=%u AND `problem_id`=%u AND `accepted` = 0)", problem_id, user_id, problem_id);
             execsql("UPDATE `oj_solved_problems` SET `accepted`= `accepted` + 1 WHERE user_id=%u AND problem_id=%u ", user_id, problem_id);
