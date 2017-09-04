@@ -11,7 +11,7 @@
 #define LOG_PATH  "/home/judge/log" // if wrong, see /var/log/syslog
 #define RUN_PATH  "/home/judge/run"
 #define PID_PATH  "/home/judge/etc"
-#define DATA_PATH "/home/judge/data"
+#define DATA_PATH "/var/www/soj/storage/app/data"
 
 #define RUN_MAX  3
 
