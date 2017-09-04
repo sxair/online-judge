@@ -2,9 +2,12 @@
 
 // sys/syscall.h -> asm/unistd.h -> asm/unistd_64.h
 #ifdef __i386
-int c_call[] = {-1};
+int c_call[] = {3, 4, 11, 33, 45, 85, 122, 140, 197, 243, 252, -1};
 #else
-int c_call[] = {0, 1, 2, 3, 4, 5, 8, 9, 11, 12, 21, 59, 63, 158, 89, 201, 231, -1};
+int c_call[] = {0, 1, 2, 3, 4, 5, 8, 9, 11, 12, 21, 59, 63, 89, 158, 201, 231, 240,
+	       SYS_time, SYS_read, SYS_uname, SYS_write, SYS_open,
+		SYS_close, SYS_execve, SYS_access, SYS_brk, SYS_munmap, SYS_mprotect,
+		SYS_mmap, SYS_fstat, SYS_set_thread_area, 252, SYS_arch_prctl, -1};
 #endif
 
 extern int system_call[512];

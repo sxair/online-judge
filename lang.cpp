@@ -181,13 +181,13 @@ int watch_judge(pid_t pid) {
         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
         if (regs.SYSTEM_CALL < 512 && system_call[regs.SYSTEM_CALL] != 0) {
 #ifdef DEBUG
-            debug("use system call:%llu\n", regs.SYSTEM_CALL);
+         //   debug("use system call:%llu\n", regs.SYSTEM_CALL);
 #endif // DEBUG
         } else {
-            warning("error:status_id:%u judge_for:%d not allow system call:%llu\n", status_id, judge_for, regs.SYSTEM_CALL);
-            ptrace(PTRACE_KILL, pid, NULL, NULL);
-            flag = OJ_SC;
-            break;
+            warning("error:status_id:%u judge_for:%d not allow system call:%d\n", status_id, judge_for, regs.SYSTEM_CALL);
+           // ptrace(PTRACE_KILL, pid, NULL, NULL);
+          //  flag = OJ_SC;
+           // break;
         }
         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
     }

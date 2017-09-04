@@ -45,7 +45,9 @@ void set_status(int status) {
 WHERE `user_id`=%u AND `problem_id`=%u AND `accepted` = 0)", problem_id, user_id, problem_id);
             execsql("UPDATE `oj_solved_problems` SET `accepted`= `accepted` + 1 WHERE user_id=%u AND problem_id=%u ", user_id, problem_id);
         } else {
-            int zz = status / OJ_TEST_MAX;
+            int zz;
+	    if(status != OJ_AC && status != OJ_CE)
+		zz =  status / OJ_TEST_MAX;
             if(zz>10 || zz < 0) zz = 10;
             execsql("UPDATE `oj_problem_infos` SET `%s`= `%s` + 1 WHERE id=%u", status_map[zz], status_map[zz], problem_id);
         }
