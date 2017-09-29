@@ -1,4 +1,4 @@
-#include "compare.h"
+#include "soj-inc/compare.h"
 
 void write_file(const char *cont, const char *fmt, ...) {
     char file_path[128];

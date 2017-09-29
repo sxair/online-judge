@@ -1,4 +1,4 @@
-#include "solve.h"
+#include "soj-inc/solve.h"
 
 #define LANG_C 1
 #define LANG_CPP 2
@@ -40,7 +40,7 @@ int get_proc_status(int pid, const char *type) {
 }
 
 void run_judge(const char *path) {
-    char buf[64];
+    char buf[128];
     if(nice(19) == -1) {
         warning("nice is error");
     }
@@ -54,8 +54,7 @@ void run_judge(const char *path) {
     sprintf(buf, "%s.in", path);
     if(freopen(buf, "r", stdin));
 
-    sprintf(buf, "./%ld.out", name);
-    if(freopen(buf, "w", stdout));
+    if(freopen("user.out", "w", stdout));
     if(freopen("error.out", "w", stderr));
 
     ptrace(PTRACE_TRACEME, 0, NULL, NULL);

@@ -1,11 +1,10 @@
-#include "solve.h"
+#include "soj-inc/solve.h"
 
 char RUN_ROOM[64];
 int run_id; // run in which room
 
 unsigned status_id, judge_for;
 
-//solve need
 int time_limit, time_limit_second, memory_limit,time_used, memory_used;
 int spj, judge_cnt, lang, true_problem_id;
 

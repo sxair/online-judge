@@ -1,4 +1,4 @@
-#include "from.h"
+#include "soj-inc/from.h"
 
 //one contest status no more than 268435456-1
 // 0 is oj_problem
@@ -15,9 +15,6 @@
 unsigned problem_id;
 unsigned type_id, user_id;
 
-extern unsigned status_id, judge_for;
-extern int time_limit, time_limit_second, memory_limit,time_used, memory_used;
-extern int spj, judge_cnt, lang, true_problem_id;
 
 //#define OJ_CI 1 //Compiling
 //#define OJ_CE 2
@@ -109,11 +106,11 @@ int get_problem_info() {
 int judge_start() {
 #ifdef DEBUG
     if(TYPE_OJ(judge_for)) {
-        debug("judge_id:%llu status_id: %u type:oj RUN_ROOM: %s\n", judge_id, status_id, RUN_ROOM);
+        debug("status_id: %u type:oj RUN_ROOM: %s\n", status_id, RUN_ROOM);
     } else if(TYPE_CONTEST(judge_for)) {
-        debug("judge_id:%llu status_id: %u type:contest con_id:%d RUN_ROOM: %s\n", judge_id, status_id, CONTEST_ID(judge_for),RUN_ROOM);
+        debug("status_id: %u type:contest con_id:%d RUN_ROOM: %s\n", status_id, CONTEST_ID(judge_for),RUN_ROOM);
     } else if(TYPE_DIY(judge_for)) {
-        debug("judge_id:%llu status_id: %u type:diy diy_id:%d RUN_ROOM: %s\n", judge_id, status_id, DIY_ID(judge_for),RUN_ROOM);
+        debug("status_id: %u type:diy diy_id:%d RUN_ROOM: %s\n", status_id, DIY_ID(judge_for),RUN_ROOM);
     }
 #endif // DEBUG
     if(!connect_mysql()) {
@@ -148,11 +145,7 @@ DELIMITER ;
         lang = strtoul(row[0], 0, 10);
         problem_id = strtoul(row[1], 0, 10);
         user_id = strtoul(row[2], 0, 10);
-        if(lang == LANG_JAVA) {
-            write_file(row[3], "./Main.%s", LANG[lang]);
-        } else {
-            write_file(row[3], "./%ld.%s", name, LANG[lang]);
-        }
+        write_file(row[3], "./Main.%s", LANG[lang]);
         true_problem_id = strtoul(row[4],0,10);
         mysql_free_result(res);
         res = NULL;
