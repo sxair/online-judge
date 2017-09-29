@@ -2,7 +2,7 @@ online-judge
 
 gcc -O2 -o judge -DDEBUG judge.cpp support.cpp -lmysqlclient
 
-gcc -O2 -o run -DDEBUG run.cpp lang.cpp support.cpp lang/lang_c.cpp -lmysqlclient
+gcc -O2 -o run -DDEBUG run.cpp lang.cpp support.cpp lang/lang_c.cpp lang/lang_java.cpp -lmysqlclient
 
 #process_sql in judge.cpp:
 

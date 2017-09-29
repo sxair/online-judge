@@ -25,8 +25,9 @@ void warning(const char *, ...) ;
 
 int execcmd(const char *, ...) ;
 
-//mysql
+//db
 bool connect_mysql() ;
 bool execsql(const char *, ...) ;
+void close_mysql();
 
 #endif // SUPPORT_H_INCLUDED

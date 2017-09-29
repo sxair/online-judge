@@ -1,41 +1,33 @@
 #include "support.h"
 
+char log_buf[MAX_BUFF << 1];
+
 void debug(const char *fmt, ...) {
 #ifdef DEBUG
-    char buf[LOG_MAX_BUFF];
-    va_create(buf);
-    printf("%s", buf);
+    va_create(log_buf);
+    printf("%s", log_buf);
 #endif
 }
 
-void write_log(const char *fmt, ...) {
-    char buf[LOG_MAX_BUFF];
-    #ifdef DEBUG
-            debug("write log:%s\n", buf);
-        #endif // DEBUG
+void warning(const char *fmt, ...) {
     time_t sec = time(NULL);
     struct tm *t = localtime(&sec);
-    sprintf(buf, "%s/%djudge%d.log", LOG_PATH, t->tm_year + 1900, t->tm_mon + 1);
-    FILE *fp = fopen(buf, "a+");
+    char path_buf[128];
+    va_create(log_buf);
+    sprintf(path_buf, "%s/%djudge%d.log", LOG_PATH, t->tm_year + 1900, t->tm_mon + 1);
+    FILE *fp = fopen(path_buf, "a+");
     if (fp == NULL) {
-        syslog(LOG_ERR, "write log error,path:%s\n maybe log file is not exist\n", buf);
+        syslog(LOG_ERR, "write log error,path:%s\ncontent:%s\n maybe log file is not exist\n", path_buf, log_buf);
         #ifdef DEBUG
-            debug("write log error,path:%s\n maybe log file is not exist\n", buf);
+            debug("write log error,path:%s\ncontent:%s\n maybe log file is not exist\n", path_buf, log_buf);
         #endif // DEBUG
         return ;
     }
-    va_create(buf);
-    fprintf(fp, "%d %02d:%02d:%02d %s", t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, buf);
+    #ifdef DEBUG
+        printf("log:%s\n",log_buf);
+    #endif // DEBUG
+    fprintf(fp, "%d %02d:%02d:%02d %s", t->tm_mday, t->tm_hour, t->tm_min, t->tm_sec, log_buf);
     fclose(fp);
-}
-
-void warning(const char *fmt, ...) {
-    char buf[LOG_MAX_BUFF];
-    va_create(buf);
-#ifdef DEBUG
-    debug("%s", buf);
-#endif // DEBUG
-    write_log("%s", buf);
 }
 
 int execcmd(const char *fmt, ...) {
@@ -46,7 +38,7 @@ int execcmd(const char *fmt, ...) {
 #endif
     return system(cmd);
 }
-
+/*-------------------------------db---------------------------*/
 MYSQL *conn;
 
 bool connect_mysql() {
@@ -60,20 +52,16 @@ bool connect_mysql() {
             conn = NULL;
             return false;
         }
+        mysql_real_query(conn, "set names utf8mb4", 18);
         #ifdef DEBUG
             debug("mysql connetc success\n");
         #endif
-        mysql_real_query(conn, "set names utf8mb4", 18);
     }
     return true;
 }
-
+char sql[MAX_BUFF << 1];
 bool execsql(const char *fmt, ...) {
-    char sql[LOG_MAX_BUFF];
     va_create(sql);
-#ifdef DEBUG
-    debug("query %s\n", sql);
-#endif
     if (conn == NULL && !connect_mysql()) {
         warning("exec sql error:%s\nmysql can not connect\n", sql);
         return false;
@@ -87,4 +75,9 @@ bool execsql(const char *fmt, ...) {
         return false;
     }
     return true;
+}
+
+void close_mysql() {
+    if(conn != NULL) mysql_close(conn);
+    conn = NULL;
 }
