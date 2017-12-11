@@ -3,8 +3,9 @@
 
 #include "support.h"
 
-void write_file(const char *cont, const char *fmt, ...);
-long get_file_size(const char *file);
-int check_ans(const char *,const char *);
+/*
+* 判断两个文件夹是否相同，若为spj则运行spj
+*/
+int check_ans(const char *,const char *, int);
 
 #endif // COMPARE_H_INCLUDED

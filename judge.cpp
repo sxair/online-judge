@@ -2,21 +2,48 @@
 #include <fcntl.h>
 
 extern MYSQL *conn;
+char run_path_fix[35];
 
-void set_file() {
+void umount_all() {
     execcmd("umount %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
 #ifdef __x86_64__
     execcmd("umount %s/lib64", RUN_PATH);
+#endif // __x86_64__
+}
+
+/**
+* create file for judge
+*/
+void set_file() {
+    //以防万一，先取消所有挂载！
+    umount_all();
+    //建立原始文件夹
+    execcmd("mkdir -p %s %s %s %s %s", HOME_PATH, LOG_PATH, RUN_PATH, PID_PATH, DATA_PATH);
+
+    // 如果umount失败
+    if(execcmd("ls %s/bin|wc -l", RUN_PATH)) {
+        warning("umount失败，请用root账户运行程序\n");
+        exit(0);
+    }
+    //删除run内内容 !必需umount后才能删除
+    execcmd("rm -rf %s", RUN_PATH);
+    //随机run路径。防止include攻击
+    srand((unsigned)time(NULL));
+    for(int i=0; i<32; i++) {
+        run_path_fix[i] = rand() % 26 + 'a' + (rand() & 1) * ('A' - 'a');
+    }
+    for (int i = 0; i < MAX_RUN; i++) {
+        execcmd("mkdir -p %s/%s%d", RUN_PATH, run_path_fix, i);
+        execcmd("chown %s:%s %s/%s%d", POORUSER, POORUSER, RUN_PATH, run_path_fix, i);
+    }
+    execcmd("mkdir -p %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
+
+    // remember to umount!
+
+#ifdef __x86_64__
     execcmd("mkdir -p %s/lib64",RUN_PATH);
     execcmd("mount --bind /lib64 %s/lib64",RUN_PATH);
 #endif // __x86_64__
-    execcmd("mkdir -p %s %s %s %s %s", HOME_PATH, LOG_PATH, RUN_PATH, PID_PATH, DATA_PATH);
-    for (int i = 0; i < MAX_RUN; i++) {
-        execcmd("mkdir -p %s%d", RUN_ROOM_PREFIX, i);
-        execcmd("chown %s:%s %s%d", POORUSER, POORUSER, RUN_ROOM_PREFIX, i);
-    }
-    execcmd("mkdir -p %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
-    // remember to umount!
     execcmd("mount --bind /usr %s/usr",RUN_PATH);
     execcmd("mount --bind /bin %s/bin",RUN_PATH);
     execcmd("mount --bind /lib %s/lib",RUN_PATH);
@@ -24,13 +51,16 @@ void set_file() {
     execcmd("mount --bind /proc %s/proc",RUN_PATH);
 }
 
+/**
+* check if have another judger
+*/
 void chk_running() {
     char buf[64];
     sprintf(buf, "%s/judge.pid", PID_PATH);
     // O:读写。不存在则新建 创建时：S（受unmask限制）:用户读写，组可读
     int fd = open(buf, O_CREAT|O_RDWR, S_IRUSR|S_IWUSR|S_IRGRP);
     if (fd < 0) {
-        warning("oj already running.\n");
+        printf("oj already running.\n");
         exit(1);
     }
     struct flock fl;
@@ -39,7 +69,7 @@ void chk_running() {
     fl.l_type = F_WRLCK;//lock for write
     fl.l_whence = SEEK_SET;
     if (fcntl(fd, F_SETLK, &fl) < 0) {
-        warning("lock %s failed:%s",buf,strerror(errno));
+        printf("lock %s failed:%s",buf,strerror(errno));
         exit(1);
     }
     if(!ftruncate(fd, 0)) { // clear content
@@ -74,59 +104,90 @@ void daemon(void) {
     return ;
 }
 
-int STOP;
+bool STOP = false;
 void stop_judge(int s) {
-    STOP = 1;
+    STOP = true;
 }
 
 void run(unsigned long long judge_id, int run_id) {
-    char judgeid[68], runid[68];
+#ifdef DEBUG
+    printf("begin run judge_id= %llu in room %d\n", judge_id, run_id);
+#endif // DEBUG
+    char judgeid[68], run_room[37];
     sprintf(judgeid, "%llu",judge_id);
-    sprintf(runid, "%d", run_id);
-    if (execl("./run-client", "./run-client", judgeid, runid, (char *)NULL) == -1) {
+    sprintf(run_room, "%s%d", run_path_fix, run_id);
+    #ifdef TEST
+    sleep(2);
+    #else
+    if (execl("./run-client", "./run-client", judgeid, run_room, (char *)NULL) == -1) {
         warning("error:run程序无法运行\n");
+        exit(0);
     }
+    #endif // TEST
 }
 
 int queue_top, queue_last, run_cnt;
 unsigned long long judge_queue[MAX_RUN << 1 | 1];
 pid_t pid[MAX_RUN + 1], tpid;
 
-void set_judges() {
-    if(!connect_mysql()) {
-        return ;
+bool set_judges() {
+    queue_last = queue_top = 0;
+    if(conn == NULL && !connect_mysql()) {
+        return false;
     }
-    queue_top = 0;
-    execsql("select status_id,judge_for from judges where running = 0 limit %d", MAX_RUN << 1);
-    MYSQL_RES *res = mysql_store_result(conn);
-    MYSQL_ROW row;
-    if(res != NULL) {
-        while ((row = mysql_fetch_row(res)) != NULL) {
-            judge_queue[queue_top] = atoi(row[0]);
-            judge_queue[queue_top++] |= atoll(row[1])<<32;
+    execsql("call get_judges(%d,%d)", JUDGE_ID, MAX_RUN << 1);
+    // http://www.jb51.net/article/19661.htm
+    do {
+        MYSQL_RES *res = mysql_store_result(conn);
+        MYSQL_ROW row;
+        if(res != NULL) {
+            while ((row = mysql_fetch_row(res)) != NULL) {
+                judge_queue[queue_top] = atoi(row[0]);
+                judge_queue[queue_top++] |= atoll(row[1])<<32;
+            }
+            mysql_free_result(res);
+            res = NULL;
         }
-        mysql_free_result(res);
-        res = NULL;
-    }
+    } while(!mysql_next_result(conn));
+    printf("get %d judges\n", queue_top);
+    return true;
 }
 
+/**
+* 获取评测id
+*/
 unsigned long long get_judge() {
-    if(queue_last < queue_top) {
+    // 先从队列中获取。初始都为0  获取不到则从数据库中拉取
+    if(queue_last < queue_top || (set_judges() && queue_last < queue_top)) {
         return judge_queue[queue_last++];
     }
-    set_judges();
-    if(queue_last < queue_top) {
-        return judge_queue[queue_last++];
-    }
-    return queue_last = 0;
+    return 0;
 }
 
-inline void solve_pid(pid_t tpid) {
+/**
+* 把子进程id从pid中删除,并返回run room id
+*/
+int solve_pid(pid_t tpid) {
     for(int i = 0; i < MAX_RUN; i++) {
         if(pid[i] == tpid) {
             pid[i] = 0;
+#ifdef DEBUG
+            printf("solve pid %d\n", tpid);
+#endif // DEBUG
             run_cnt--;
-            break;
+            return i;
+        }
+    }
+    return -1;
+}
+
+/**
+* 回收所有子进程
+*/
+void wait_all() {
+    if(run_cnt) {
+        while((tpid = waitpid(-1, NULL, WNOHANG)) > 0) {
+            solve_pid(tpid);
         }
     }
 }
@@ -134,35 +195,31 @@ inline void solve_pid(pid_t tpid) {
 void start_judge() {
     int i;
     unsigned long long t;
-    execsql("update judges set running = 0 where running = 1");
+    //把之前未解决的重新加入队列
+    execsql("update judges set running = 0 where running = %d", JUDGE_ID);
     while(1) {
         // 获取空闲位置
         if(run_cnt < MAX_RUN) {
             for(i = 0; pid[i]; i++) ;
         } else {
-            solve_pid(waitpid(-1, NULL, 0));
+            //等待一个进程结束。并在队列中删除
+            i = solve_pid(waitpid(-1, NULL, 0));
+        }
+        // 如果需要停止。则回收所有子进程
+        if(STOP) {
+            wait_all();
+            return;
         }
         // 如果没获取到待评测
         if(!(t = get_judge())) {
-            if(!run_cnt) {
-                if(STOP) return ; // 如果没事且要退出就退出
-            } else { // 回收子进程
-                while((tpid = waitpid(-1, NULL, WNOHANG)) > 0) {
-                    solve_pid(tpid);
-                }
-            }
+            wait_all();
             sleep(2);
         } else {
-            execsql("update judges set running = 1 where status_id = %u and judge_for = %u",
-                    (unsigned)(t & 0xffffffff), (unsigned)(t >> 32));
             tpid = fork();
             if(tpid > 0) {
                 run_cnt++;
                 pid[i] = tpid;
             } else if(tpid == 0) {
-#ifdef DEBUG
-                debug("begin run = %d in room %d\n", t, i);
-#endif // DEBUG
                 run(t, i);
                 exit(0);
             }
@@ -178,14 +235,15 @@ int main(int argc, char** argv) {
 #ifndef DEBUG
     daemon();
     //http://www.cnblogs.com/makefile/p/3751390.html
+    //https://www.cnblogs.com/hanyifeng/p/6728151.html
     signal(SIGQUIT, stop_judge);
     signal(SIGINT, stop_judge);
+    signal(SIGTERM, stop_judge);
 #endif // DEBUG
     //begin
     start_judge();
     // end
-    execcmd("umount %s/usr %s/bin %s/lib %s/lib64", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
+    umount_all();
     close_mysql();
-    warning("judge exit!\n");
     return 0;
 }

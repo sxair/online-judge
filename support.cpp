@@ -2,11 +2,23 @@
 
 char log_buf[MAX_BUFF << 1];
 
-void debug(const char *fmt, ...) {
-#ifdef DEBUG
-    va_create(log_buf);
-    printf("%s", log_buf);
-#endif
+long get_file_size(const char *file) {
+    struct stat f_stat;
+    stat(file, &f_stat);
+    return f_stat.st_size;
+}
+
+void write_file(const char *cont, const char *fmt, ...) {
+    char file_path[128];
+    va_create(file_path);
+
+    FILE *fp = fopen(file_path, "w");
+    if(fp == NULL) {
+        warning("open file error:%s\n", file_path);
+        exit(1);
+    }
+    fprintf(fp, "%s", cont);
+    fclose(fp);
 }
 
 void warning(const char *fmt, ...) {
@@ -19,7 +31,7 @@ void warning(const char *fmt, ...) {
     if (fp == NULL) {
         syslog(LOG_ERR, "write log error,path:%s\ncontent:%s\n maybe log file is not exist\n", path_buf, log_buf);
         #ifdef DEBUG
-            debug("write log error,path:%s\ncontent:%s\n maybe log file is not exist\n", path_buf, log_buf);
+            printf("write log error,path:%s\ncontent:%s\n maybe log file is not exist\n", path_buf, log_buf);
         #endif // DEBUG
         return ;
     }
@@ -34,10 +46,11 @@ int execcmd(const char *fmt, ...) {
     char cmd[256];
     va_create(cmd);
 #ifdef DEBUG
-    debug("exec %s\n",cmd);
+    printf("exec %s\n",cmd);
 #endif
     return system(cmd);
 }
+
 /*-------------------------------db---------------------------*/
 MYSQL *conn;
 
@@ -52,16 +65,25 @@ bool connect_mysql() {
             conn = NULL;
             return false;
         }
-        mysql_real_query(conn, "set names utf8mb4", 18);
+        if (mysql_real_query(conn, "set names utf8mb4", 17)) {
+            warning("连接数据库失败\n");
+            if(conn != NULL)
+                mysql_close(conn);
+            conn = NULL;
+            exit(0);
+        }
         #ifdef DEBUG
-            debug("mysql connetc success\n");
-        #endif
+            printf("mysql connetc success\n");
+        #endif // DEBUG
     }
     return true;
 }
 char sql[MAX_BUFF << 1];
 bool execsql(const char *fmt, ...) {
     va_create(sql);
+#ifdef DEBUG
+    printf("execsql %s\n",sql);
+#endif // DEBUG
     if (conn == NULL && !connect_mysql()) {
         warning("exec sql error:%s\nmysql can not connect\n", sql);
         return false;

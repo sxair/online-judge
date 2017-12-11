@@ -1,11 +1,5 @@
 #include "soj-inc/solve.h"
 
-#define LANG_C 1
-#define LANG_CPP 2
-#define LANG_JAVA 3
-#define LANG_PY2 4
-#define LANG_PY3 5
-
 int system_call[512];
 
 #ifdef __i386
@@ -84,13 +78,12 @@ void run_judge(const char *path) {
     if(lang != LANG_JAVA) {
 	    LIM.rlim_cur = (rlim_t)memory_limit << 11;
 	    LIM.rlim_max = (rlim_t)memory_limit << 11;
-	    setrlimit(RLIMIT_AS, &LIM);
+	   setrlimit(RLIMIT_AS, &LIM);
 	}
 
-    // proc limit 1 for execl
     LIM.rlim_cur = LIM.rlim_max = 1;
     if(lang == LANG_JAVA) {
-    	LIM.rlim_cur = LIM.rlim_max = 80;
+    	LIM.rlim_cur = LIM.rlim_max = 1000;
     }
     setrlimit(RLIMIT_NPROC, &LIM);
 
@@ -99,7 +92,7 @@ void run_judge(const char *path) {
     } else if(lang == LANG_JAVA) {
         char java_xms[64];
         sprintf(java_xms, "-Xms%dm", memory_limit >> 10);
-        if(execl("/usr/bin/java", "/usr/bin/java", java_xms, "-Xmx1024m", "-Xss64m", "Main", (char *) NULL)==-1){
+        if(execl("/usr/bin/java", "/usr/bin/java", "-d64", "Main", (char *) NULL)==-1){
             printf("java run wrong");
         }
     } else if(lang == LANG_PY2){
@@ -139,7 +132,7 @@ int watch_judge(pid_t pid) {
         }
         if(WIFEXITED(status)) {
 #ifdef DEBUG
-            debug("normal exit %d\n", WTERMSIG(status));
+            printf("normal exit %d\n", WTERMSIG(status));
 #endif // DEBUG
             break;
         }
@@ -164,7 +157,7 @@ int watch_judge(pid_t pid) {
             }
             if(flag != OJ_AC) {
 #ifdef DEBUG
-                debug("stop exit %d %s\n", sig, strsignal(sig));
+                printf("stop exit %d %s\n", sig, strsignal(sig));
 #endif // DEBUG
                 break;
             }
@@ -175,7 +168,7 @@ int watch_judge(pid_t pid) {
             // http://blog.csdn.net/stormkey/article/details/5890512
             // man setrlimit
 #ifdef DEBUG
-            debug("sig exit:%d %s\n", sig, strsignal(sig));
+            printf("sig exit:%d %s\n", sig, strsignal(sig));
 #endif // DEBUG
             switch (sig) {
             case SIGCHLD:
@@ -200,7 +193,7 @@ int watch_judge(pid_t pid) {
         }
         if(get_file_size("error.out")) {
 #ifdef DEBUG
-            debug("检测到错误文件\n");
+            printf("检测到错误文件\n");
 #endif // DEBUG
             ptrace(PTRACE_KILL, pid, NULL, NULL);
             flag = OJ_RE;
@@ -209,7 +202,7 @@ int watch_judge(pid_t pid) {
         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
         if (regs.SYSTEM_CALL < 512 && system_call[regs.SYSTEM_CALL] != 0) {
 #ifdef DEBUG
-            //   debug("use system call:%llu\n", regs.SYSTEM_CALL);
+            //   printf("use system call:%llu\n", regs.SYSTEM_CALL);
 #endif // DEBUG
         } else {
             warning("error:status_id:%u judge_for:%d not allow system call:%d\n", status_id, judge_for, regs.SYSTEM_CALL);
@@ -238,9 +231,12 @@ int run(const char * buf) {
     } else {
         return watch_judge(pid);
     }
-    return 0;
+    exit(0);
 }
 
+/*
+* 运行每个测试样例并判断，出现不是ac的则退出
+*/
 unsigned run_test() {
     unsigned f = OJ_AC, i, fal = OJ_AC;
     char buf[128];
@@ -249,23 +245,19 @@ unsigned run_test() {
         sprintf(buf, "%s/%d/pro%d_test%d", DATA_PATH, true_problem_id, true_problem_id, i);
         f = run(buf);
 #ifdef DEBUG
-        debug("running test %d , get status:%d\n",i,f);
+        printf("running test %d , get status:%d\n",i,f);
 #endif // DEBUG
         if(f != OJ_AC) {
             fal = f;
             break;
         }
         sprintf(buf, "%s.out", buf);
-        f = check_ans(buf, "user.out");
+        f = check_ans(buf, "user.out", spj);
 #ifdef DEBUG
-        debug("check test %d\n", f);
+        printf("check test %d\n", f);
 #endif // DEBUG
-        if(f == OJ_WA) {
-            fal = OJ_WA;
-            break;
-        }
-        if(f == OJ_PE) {
-            fal = OJ_PE;
+        if(f != OJ_AC) {
+            fal = f;
             break;
         }
     }
@@ -285,15 +277,15 @@ int compile() {
         LIM.rlim_max =  LIM.rlim_cur = STD_MB << 4;
         setrlimit(RLIMIT_FSIZE, &LIM);
 
-        // 虚拟内存 256mb
+        // java虚拟内存 512mb .但不知为什么设为11才不报错。。。。
         if(lang == LANG_JAVA) {
-            LIM.rlim_max = STD_MB << 10;
-            LIM.rlim_cur = STD_MB << 10;
+          //  LIM.rlim_max = STD_MB << 11;
+          //  LIM.rlim_cur = STD_MB << 11;
         } else {
             LIM.rlim_max = STD_MB << 8;
             LIM.rlim_cur = STD_MB << 8;
+            setrlimit(RLIMIT_AS, &LIM);
         }
-        setrlimit(RLIMIT_AS, &LIM);
 
         if(chroot(RUN_PATH));
 
@@ -303,18 +295,17 @@ int compile() {
 
         if(freopen("./ce.txt", "w", stderr));
         if(lang == LANG_C) {
-            if (execlp("gcc", "gcc", "-o", "Main", "./main.c", "-std=c99","-lm", "-Wall", "--static",
+            if (execlp("gcc", "gcc", "-o", "Main", "./Main.c", "-std=c99","-lm", "-Wall", "--static",
                        "-std=c99", "-O2", "-DONLINE_JUDGE", (char *)NULL) == -1) {
                 exit(1);
             }
         } else if(lang == LANG_CPP){
-            if (execlp("g++", "g++", "-o", "Main", "./main.cpp", "-std=c++11", "-lm", "-Wall","--static",
+            if (execlp("g++", "g++", "-o", "Main", "./Main.cpp", "-std=c++11", "-lm", "-Wall","--static",
                        "-O2", "-DONLINE_JUDGE", (char *)NULL) == -1) {
                 exit(1);
             }
         } else if(lang == LANG_JAVA){
-            if (execlp("javac", "javac", "-J-Xmx450m", "-J-Xms64m",
-                   "-encoding", "UTF-8", "-g:none", "-nowarn", "./Main.java", (char *)NULL) == -1) {
+            if (execlp("javac", "javac", "-encoding", "UTF-8", "-g:none", "-nowarn", "./Main.java", (char *)NULL) == -1) {
                 exit(1);
             }
         }
@@ -323,7 +314,7 @@ int compile() {
         int status;
         waitpid(pid, &status, 0);
 #ifdef DEBUG
-        debug("compile status:%d\n", status);
+        printf("compile status:%d\n", status);
 #endif // DEBUG
         return status;
     }

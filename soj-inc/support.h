@@ -18,8 +18,10 @@
 
 #define va_create(buf) va_list ap; va_start(ap,fmt); vsprintf(buf, fmt, ap); va_end(ap);
 
+long get_file_size(const char *file);
+void write_file(const char *cont, const char *fmt, ...);
+
 // log
-void debug(const char *, ...) ;
 void write_log(const char *, ...) ;
 void warning(const char *, ...) ;
 

@@ -1,6 +1,8 @@
 #ifndef CONFIG_H_INCLUDED
 #define CONFIG_H_INCLUDED
 
+#define JUDGE_ID 1 //评判机编号。用于恢复评判机失败评判队列
+
 #define DB_HOST  "127.0.0.1"
 #define DB_NAME  "soj"
 #define DB_USER  "root"
@@ -11,17 +13,23 @@
 #define HOME_PATH "/home/judge"
 #define LOG_PATH  "/home/judge/log" // if wrong, see /var/log/syslog
 #define RUN_PATH  "/home/judge/run"
-#define RUN_ROOM_PREFIX  "/home/judge/run/runacsefscwersdcwe" //for include attack
+
 #define PID_PATH  "/home/judge/etc"
 #define DATA_PATH "/var/www/soj/storage/app/data"
 
-#define MAX_RUN  3 // run-client number
+#define MAX_RUN  10 // run-client number
 #define MAX_BUFF 2048 // log buff
-#define MAX_TEST 10000 // problem test time测试数据的数量
+#define MAX_TEST 10000 // 测试数据的数量
 #define MAX_RUN_TIME 60 //second
 
-#define POORUID  1001 // see /etc/passwd
+#define POORUID  1001 // 低权限用户 see /etc/passwd
 #define POORUSER "judge"
+
+#define LANG_C 1
+#define LANG_CPP 2
+#define LANG_JAVA 3
+#define LANG_PY2 4
+#define LANG_PY3 5
 
 #define OJ_CI 1 //Compiling
 #define OJ_CE 2
@@ -36,6 +44,6 @@
 #define OJ_RE 11
 #define OJ_SF 12 //Segmentation fault sig:11
 #define OJ_FPE 13 //Floating Point Exception sig:8
-#define OJ_NASC 14 //not all SYSTEM CALL
+#define OJ_NASC 14 //not allow SYSTEM CALL
 
 #endif // CONFIG_H_INCLUDED

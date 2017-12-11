@@ -1,81 +1,73 @@
 #include "soj-inc/compare.h"
 
-void write_file(const char *cont, const char *fmt, ...) {
-    char file_path[128];
-    va_create(file_path);
-
-    FILE *fp = fopen(file_path, "w");
-    if(fp == NULL) {
-        warning("open file error:%s\n", file_path);
-        exit(1);
-    }
-    fprintf(fp, "%s", cont);
-    fclose(fp);
+/**
+* p1 为buf 头，p2 尾
+* 如果p1 == p2 说明buf区使用完。要用fread读取，读取完后判断p1==p2来返回
+* 逗号运算符：值为最后一个。
+*/
+char buf[100000],*p1=buf,*p2=buf;
+inline char nc(FILE *f) {
+    return p1==p2&&(p2=(p1=buf)+fread(buf,1,100000,f),p1==p2)?EOF:*p1++;
+}
+inline char nc1(FILE *f) {
+    char t = nc(f);
+    if(t == 13) t = nc(f);
+    return t;
 }
 
-long get_file_size(const char *file) {
-    struct stat f_stat;
-    stat(file, &f_stat);
-    return f_stat.st_size;
+char buf2[100000],*sf=buf2,*ef=buf2;
+inline char nc2(FILE *f) {
+    return sf==ef&&(ef=(sf=buf2)+fread(buf2,1,100000,f),sf==ef)?EOF:*sf++;
 }
+
 
 bool ispe(char c) {
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
 
-int check_ans(const char *pro,const char *user) {
-    // if(spj) return check_ans_spj(pro, user);
+int check_ans_spj(const char *pro,const char *user) {
+    pid_t pid = fork();
+    if(pid == 0) {
+        //run_judge(buf);
+    } else {
+        //return watch_judge(pid);
+    }
+    return 1;
+}
+
+int check_ans(const char *pro,const char *user, int spj) {
+    if(spj) return check_ans_spj(pro, user);
     FILE *fp1, *fp2;
-    int flag = OJ_AC,i,j, ii, jj;
 #ifdef DEBUG
-    debug("file:%s %s\n",pro,user);
+    printf("file:%s %s\n",pro,user);
 #endif // DEBUG
-    if((fp1= fopen(pro, "rb")) == NULL) {
-        return OJ_AC;
+    if((fp1 = fopen(pro, "rb")) == NULL) {
+        return OJ_SE;
     }
     if((fp2= fopen(user, "rb")) == NULL) {
         return OJ_WA;
     }
-    int la = get_file_size(pro);
-    int lb = get_file_size(user);
-    char *p = (char*)malloc(sizeof(char)*la + 2);
-    char *s = (char*)malloc(sizeof(char)*lb + 2);
-    if(fread(p, 1, la + 1, fp1));
-    if(fread(s, 1, lb + 1, fp2));
-    for(i=0, j=0; i<la&&j<lb; i++,j++) {
-        if(p[i] == 13) i++;
-        if(p[i]!=s[j]) {
-            if(!ispe(p[i])&&!ispe(s[j])) {
-                free(p);
-                free(s);
-                return OJ_WA;
-            }
+    int flag = OJ_AC;
+    char c1,c2;
+    while(c1=nc1(fp1), c2=nc2(fp2), c1 !=EOF && c2 != EOF) {
+        if(c1 != c2) {
+            if(!ispe(c1) && !ispe(c2)) { // 如果两个都不是pe字符。则wa
+                flag = OJ_WA;
+            } else flag = OJ_PE;
             break;
         }
     }
-    if(i==la&&j==lb) {
-        free(p);
-        free(s);
-        return OJ_AC;
+    if(flag == OJ_AC) {
+        if(c1 != c2) flag = OJ_PE; //如果还有一个不是EOF
     }
-    for(ii=0; i<la; i++) {
-        while(ispe(p[i])) ++i;
-        if(i==la) break;
-        p[ii++] = p[i];
+    if(flag != OJ_PE) return flag;
+    while(c1 != EOF || c2 != EOF) {
+        // 去除pe字符
+        while(ispe(c1) && (c1 = nc1(fp1)) != EOF) ;
+        while(ispe(c2) && (c2 = nc2(fp2)) != EOF) ;
+        if(c1 != c2) return OJ_WA;
+        c1 = nc1(fp1);
+        c2 = nc2(fp2);
     }
-    p[ii] = '\0';
-    for(jj=0; j<lb; j++) {
-        while(ispe(s[j])) ++j;
-        if(j==lb) break;
-        s[jj++] = s[j];
-    }
-    s[jj] = '\0';
-    if(!strcmp(s,p)) {
-        flag = OJ_PE;
-    } else {
-        flag = OJ_WA;
-    }
-    free(p);
-    free(s);
-    return flag;
+    return OJ_PE;
 }
