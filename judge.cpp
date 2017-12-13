@@ -18,8 +18,10 @@ void set_file() {
     //以防万一，先取消所有挂载！
     umount_all();
     //建立原始文件夹
-    execcmd("mkdir -p %s %s %s %s %s", HOME_PATH, LOG_PATH, RUN_PATH, PID_PATH, DATA_PATH);
-
+    if(execcmd("mkdir -p %s %s %s %s %s", HOME_PATH, LOG_PATH, RUN_PATH, PID_PATH, DATA_PATH)) {
+        warning("file create failed");
+        exit(0);
+    }
     // 如果umount失败
     if(execcmd("ls %s/bin|wc -l", RUN_PATH)) {
         warning("umount失败，请用root账户运行程序\n");
@@ -34,7 +36,10 @@ void set_file() {
     }
     for (int i = 0; i < MAX_RUN; i++) {
         execcmd("mkdir -p %s/%s%d", RUN_PATH, run_path_fix, i);
-        execcmd("chown %s:%s %s/%s%d", POORUSER, POORUSER, RUN_PATH, run_path_fix, i);
+        if(execcmd("chown %s:%s %s/%s%d", POORUSER, POORUSER, RUN_PATH, run_path_fix, i)) {
+        	warning("低权限 %s 用户不存在", POORUSER);
+        	exit(0);
+        }
     }
     execcmd("mkdir -p %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
 

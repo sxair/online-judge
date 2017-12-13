@@ -47,7 +47,6 @@ void run_judge(const char *path) {
 
     sprintf(buf, "%s.in", path);
     if(freopen(buf, "r", stdin));
-
     if(freopen("user.out", "w", stdout));
     if(freopen("error.out", "w", stderr));
 
@@ -57,27 +56,27 @@ void run_judge(const char *path) {
     LIM.rlim_max = LIM.rlim_cur = time_limit_second + 1;
     setrlimit(RLIMIT_CPU, &LIM);
     // 防止sleep或其他
-    alarm(time_limit_second + 2);
+    alarm(time_limit_second << 3);
 
-    // file limit 8MB
-    if(spj) {
-        LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
-    } else {
-        sprintf(buf, "%s.out", path);
-        LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
-    }
-    setrlimit(RLIMIT_FSIZE, &LIM);
+    // // file limit 8MB
+    // if(spj) {
+    //     LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
+    // } else {
+    //     sprintf(buf, "%s.out", path);
+    //     LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
+    // }
+    // setrlimit(RLIMIT_FSIZE, &LIM);
 
     // set the stack 64MB
     LIM.rlim_cur = STD_MB << 6;
     LIM.rlim_max = STD_MB << 6;
     setrlimit(RLIMIT_STACK, &LIM);
 
-    // set the memory *1K * 2
+    // set the memory *1K + 1K
     // unsigned long 免得溢出
     if(lang != LANG_JAVA) {
-	    LIM.rlim_cur = (rlim_t)memory_limit << 11;
-	    LIM.rlim_max = (rlim_t)memory_limit << 11;
+	    LIM.rlim_cur = ((rlim_t)memory_limit << 10) + 1024;
+	    LIM.rlim_max = ((rlim_t)memory_limit << 10) + 1024;
         setrlimit(RLIMIT_AS, &LIM);
 	}
 
@@ -90,9 +89,10 @@ void run_judge(const char *path) {
     if(lang == LANG_C || lang == LANG_CPP) {
         execl("./Main", "./Main", (char *) NULL);
     } else if(lang == LANG_JAVA) {
-        char java_xms[64];
-        sprintf(java_xms, "-Xms%dm", memory_limit >> 10);
-        if(execl("/usr/bin/java", "/usr/bin/java", "-d64", "Main", (char *) NULL)==-1){
+        char java_xms[64], java_xmx[64];
+        sprintf(java_xms, "-Xms%dm", (memory_limit >> 10) + 1);
+        sprintf(java_xmx, "-Xmx%dm", (memory_limit >> 10) + 2);
+        if(execl("/usr/bin/java", "/usr/bin/java", java_xms, java_xmx, "-Xss64m", "Main", (char *) NULL)==-1){
             printf("java run wrong");
         }
     } else if(lang == LANG_PY2){
@@ -119,7 +119,10 @@ int watch_judge(pid_t pid) {
     while(1) {
         wait4(pid, &status, 0, &rus);
         if(lang == LANG_JAVA) {
-            tmp_mem = (rus.ru_minflt >> 10) * getpagesize() ;
+        	//java use page memory
+        	//ru_minflt -> miss page time
+        	//getpagesize -> Byte
+            tmp_mem = rus.ru_minflt * (getpagesize() >> 10);
         } else {
             tmp_mem = get_proc_status(pid, "VmPeak:");
         }
