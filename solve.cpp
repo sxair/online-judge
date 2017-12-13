@@ -78,12 +78,12 @@ void run_judge(const char *path) {
     if(lang != LANG_JAVA) {
 	    LIM.rlim_cur = (rlim_t)memory_limit << 11;
 	    LIM.rlim_max = (rlim_t)memory_limit << 11;
-	   setrlimit(RLIMIT_AS, &LIM);
+        setrlimit(RLIMIT_AS, &LIM);
 	}
 
     LIM.rlim_cur = LIM.rlim_max = 1;
     if(lang == LANG_JAVA) {
-    	LIM.rlim_cur = LIM.rlim_max = 1000;
+    	LIM.rlim_cur = LIM.rlim_max = 80;
     }
     setrlimit(RLIMIT_NPROC, &LIM);
 
