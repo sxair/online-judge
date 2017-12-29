@@ -29,8 +29,26 @@ void set_ce() {
     if (fp == NULL) {
         execsql("INSERT INTO `oj_ces`(`status_id`, `content`) VALUES (%u,'%s')", status_id, "编译错误信息无法读取,请与管理员联系");
     } else if(fread(ce_buf, 1, MAX_BUFF, fp)) {
-        execsql("INSERT INTO `oj_ces`(`status_id`, `content`) VALUES (%u, '%s')", status_id, ce_buf);
+        char sql[MAX_BUFF << 1] = "INSERT INTO `oj_ces`(`content`, `status_id`) VALUES ('", *s;
+        s = sql + strlen(sql);
+        mysql_real_escape_string(conn, s, ce_buf,strlen(ce_buf));
+        execsql("%s',%u)", sql, status_id);
     }
+}
+
+void set_oc_status(int c) {
+    char ce_buf[MAX_BUFF] = "", sql[MAX_BUFF << 1] = "UPDATE `admin_status` SET `ce` = '", *s;
+    FILE *fp = fopen("ce.txt", "rb");
+    if(fp != NULL && fread(ce_buf, 1, MAX_BUFF, fp));
+    int status = OJ_AC;
+    if(c) {
+        status = OJ_CE;
+    } else {
+        execcmd("cp ./Main %s/%u/Main", DATA_PATH, status_id);
+    }
+    s = sql + strlen("UPDATE `admin_status` SET `ce` = '");
+    mysql_real_escape_string(conn, s, ce_buf,strlen(ce_buf));
+    execsql("%s',`status` = %d WHERE id=%d", sql, status, status_id);
 }
 
 void set_status(unsigned status) {
@@ -58,14 +76,12 @@ WHERE `user_id`=%u AND `problem_id`=%u AND `accepted` = 0)", problem_id, user_id
             if(zz > OJ_RE || zz < 0) zz = OJ_RE;
             execsql("UPDATE `oj_problem_infos` SET `%s`= `%s` + 1 WHERE id=%u", status_map[zz], status_map[zz], problem_id);
         }
-    } else {
-    }
-}
-
-void set_oc_status(int c) {
-    if(c) {
-        execsql("insert into `oj_soj` values %d", status_id);
-        execcmd("cp ./Main %s/%d/Main", status_id, DATA_PATH);
+    } else if(TYPE_ADMIN(judge_for)){
+        if(status == OJ_CE) {
+            set_oc_status(OJ_CE);
+        } else {
+            execsql("UPDATE `admin_status` SET `status` = %d WHERE id=%d", status, status_id);
+        }
     }
 }
 
@@ -106,6 +122,10 @@ int judge_start() {
         printf("status_id: %u type:contest con_id:%d RUN_ROOM: %s\n", CONTEST_STATUS_ID(judge_for), status_id, RUN_ROOM);
     } else if(TYPE_DIY(judge_for)) {
         printf("status_id: %u type:diy diy_id:%d RUN_ROOM: %s\n", DIY_STATUS_ID(judge_for), status_id, RUN_ROOM);
+    } else if(TYPE_ADMIN(judge_for)) {
+        printf("status_id: %u type:admin RUN_ROOM: %s\n", status_id, RUN_ROOM);
+    } else if(TYPE_OC(judge_for)) {
+        printf("status_id: %u type:only compile RUN_ROOM: %s\n", status_id, RUN_ROOM);
     }
 #endif // DEBUG
     if(conn == NULL && !connect_mysql()) {
@@ -119,6 +139,8 @@ int judge_start() {
         execsql("SELECT @p1, @p2, @p3, @p4, @p5");
     } else if(TYPE_CONTEST(judge_for)) {
     } else if(TYPE_DIY(judge_for)) {
+    } else if(TYPE_ADMIN(judge_for) || TYPE_OC(judge_for)) {
+        execsql("SELECT `lang`,`problem_id`,`user_id`,`code` FROM `admin_status` WHERE `id` = %d", status_id);
     } else {
         exit(OJ_SE);
     }
@@ -127,7 +149,11 @@ int judge_start() {
         problem_id = strtoul(row[1], 0, 10);
         user_id = strtoul(row[2], 0, 10);
         write_file(row[3], "./Main.%s", LANG[lang]); // store code
-        true_problem_id = strtoul(row[4],0,10); // 题目库id
+        if(!TYPE_ADMIN(judge_for) && !TYPE_OC(judge_for)) {
+            true_problem_id = strtoul(row[4],0,10); // 题目库id
+        } else {
+            true_problem_id = problem_id;
+        }
         mysql_free_result(res);
         res = NULL;
     } else {
@@ -137,5 +163,8 @@ int judge_start() {
 #ifdef DEBUG
     printf("lang:%s pro_id:%u user_id:%u\n", LANG[lang], problem_id, user_id);
 #endif // DEBUG
-    return get_problem_info();
+    if(!TYPE_OC(judge_for)) {
+        return get_problem_info();
+    }
+    return 0;
 }

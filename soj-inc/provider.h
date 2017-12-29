@@ -10,15 +10,17 @@
 // judge_for != 0 then status_id => contest_id,  judge_for^base => contest_status_id
 #define CONTEST_BASE 0x10000000
 #define DIY_BASE     0x20000000
-#define OC_BASE      0x30000000 //only compile
+#define OC_BASE      3 //only compile
+#define ADMIN_BASE   4
 
-#define TYPE_OJ(judge_for) judge_for==0
-#define TYPE_CONTEST(judge_for) judge_for&CONTEST_BASE==CONTEST_BASE
-#define TYPE_DIY(judge_for) judge_for&DIY_BASE==DIY_BASE
-#define TYPE_OC(judge_for) judge_for&OC_BASE==OC_BASE
+#define TYPE_OJ(judge_for) (judge_for==0)
+#define TYPE_CONTEST(judge_for) ((judge_for&CONTEST_BASE)==CONTEST_BASE)
+#define TYPE_DIY(judge_for) ((judge_for&DIY_BASE)==DIY_BASE)
+#define TYPE_ADMIN(judge_for) ((judge_for&ADMIN_BASE)==ADMIN_BASE)
+#define TYPE_OC(judge_for) ((judge_for&OC_BASE)==OC_BASE)
 
-#define CONTEST_STATUS_ID(judge_for) judge_for^CONTEST_BASE
-#define DIY_STATUS_ID(judge_for) judge_for^DIY_BASE
+#define CONTEST_STATUS_ID(judge_for) (judge_for^CONTEST_BASE)
+#define DIY_STATUS_ID(judge_for) (judge_for^DIY_BASE)
 
 extern MYSQL *conn;
 

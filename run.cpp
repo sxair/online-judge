@@ -24,23 +24,20 @@ int main(int argc, char **argv) {
         warning("chdir to %s failed\n", RUN_ROOM);
         exit(1);
     }
+    //获取数据库信息
+    if(judge_start()) {
+        close_mysql();
+        exit(OJ_SE);
+    }
+
     if(TYPE_OC(judge_for)) {
         // in only compile => status_id = problem_id
-        if(execcmd("cp %s/%d/spj.cpp ./Main.cpp", DATA_PATH, status_id) == 0) {
-            lang = LANG_CPP;
-            set_oc_status(compile());
-        } else {
-            warning("only compile can't find source file:%d", status_id);
-        }
-        #ifndef DEBUG
-            delete_judge();
-        #endif // DEBUG
-    } else if(!judge_start()) {
+        set_oc_status(compile());
+        delete_judge();
+    } else {
         set_status(OJ_CI);
         set_status(solve());
-        //#ifndef DEBUG
-            delete_judge();
-        //#endif // DEBUG
+        delete_judge();
     }
     /*if judge start faild. no delete judge*/
     close_mysql();

@@ -59,13 +59,13 @@ void run_judge(const char *path) {
     alarm(time_limit_second << 3);
 
     // // file limit 8MB
-    // if(spj) {
-    //     LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
-    // } else {
-    //     sprintf(buf, "%s.out", path);
-    //     LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
-    // }
-    // setrlimit(RLIMIT_FSIZE, &LIM);
+     if(spj) {
+         LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
+     } else {
+         sprintf(buf, "%s.out", path);
+         LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
+     }
+     setrlimit(RLIMIT_FSIZE, &LIM);
 
     // set the stack 64MB
     LIM.rlim_cur = STD_MB << 6;
@@ -248,7 +248,7 @@ unsigned run_test() {
         sprintf(buf, "%s/%d/pro%d_test%d", DATA_PATH, true_problem_id, true_problem_id, i);
         f = run(buf);
 #ifdef DEBUG
-        printf("running test %d , get status:%d\n",i,f);
+        printf("running test %d, get status:%d\n",i,f);
 #endif // DEBUG
         if(f != OJ_AC) {
             fal = f;
@@ -282,8 +282,8 @@ int compile() {
 
         // java虚拟内存 512mb .但不知为什么设为11才不报错。。。。
         if(lang == LANG_JAVA) {
-          //  LIM.rlim_max = STD_MB << 11;
-          //  LIM.rlim_cur = STD_MB << 11;
+            LIM.rlim_max = STD_MB << 11;
+            LIM.rlim_cur = STD_MB << 11;
         } else {
             LIM.rlim_max = STD_MB << 8;
             LIM.rlim_cur = STD_MB << 8;
