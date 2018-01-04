@@ -20,7 +20,6 @@ inline char nc2(FILE *f) {
     return sf==ef&&(ef=(sf=buf2)+fread(buf2,1,100000,f),sf==ef)?EOF:*sf++;
 }
 
-
 bool ispe(char c) {
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
@@ -32,7 +31,7 @@ int check_ans_spj(const char *pro,const char *user) {
     } else {
         //return watch_judge(pid);
     }
-    return 1;
+    exit(0);
 }
 
 int check_ans(const char *pro,const char *user, int spj) {

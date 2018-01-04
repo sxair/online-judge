@@ -7,7 +7,14 @@
 #include <sys/syscall.h>
 #include <sys/ptrace.h>
 
-#define STD_MB 1048576
+// 如新增语言记得加入头文件
+#include "lang/c.h"
+#include "lang/cpp.h"
+#include "lang/java.h"
+#include "lang/py2.h"
+#include "lang/py3.h"
+
+extern const long STD_MB;
 
 #ifdef __x86_64__
 #define SYSTEM_CALL orig_rax
@@ -15,7 +22,12 @@
 #define SYSTEM_CALL orig_eax
 #endif // __x86_64__
 
-/*
+/**
+* 设置语言
+*/
+void set_lang_config();
+
+/**
 * 读取当前 Main.lang(后缀) 文件，并根据lang参数去进行编译
 * lang参数在provider.h中
 * 返回 ！=0 为编译失败

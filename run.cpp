@@ -5,7 +5,7 @@ int run_id; // run in which room
 
 unsigned status_id, judge_for;
 
-int time_limit, time_limit_second, memory_limit,time_used, memory_used;
+unsigned time_limit, time_limit_second, memory_limit,time_used, memory_used;
 int spj, judge_cnt, lang, true_problem_id;
 
 int main(int argc, char **argv) {
@@ -29,6 +29,8 @@ int main(int argc, char **argv) {
         close_mysql();
         exit(OJ_SE);
     }
+
+    set_lang_config();
 
     if(TYPE_OC(judge_for)) {
         // in only compile => status_id = problem_id

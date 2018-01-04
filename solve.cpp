@@ -3,18 +3,37 @@
 int system_call[512];
 
 #ifdef __i386
-int c_call[] = {3, 4, 11, 33, 45, 85, 122, 140, 197, 243, 252, -1};
-int java_call[] = {3, 4, 5, 6, 11, 33, 45, 85, 91, 116, 120, 122, 125, 140, 174, 175, 191, 192, 195,
-		 197, 220, 240, 243, 252, 258, 295, 311, -1};
-int py_call[] = {3, 4, 5, 6, 11, 33, 45, 85, 91, 116, 120, 122, 125, 140, 174, 175, 191, 192, 195,
-		 197, 220, 240, 243, 252, 258, 295, 311, -1};
+int allow_system_call[] = {3, 4, 5, 6, 11, 33, 45, 85, 91, 116, 120, 122, 125, 140, 174, 175, 191, 192, 195,
+                           197, 220, 240, 243, 252, 258, 295, 311, -1
+                          };
 #else
-int c_call[] = {0, 1, 2, 3, 4, 5, 8, 9, 11, 12, 21, 59, 63, 89, 158, 201, 231, 240, -1};
-int java_call[] = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 21, 39, 41, 42, 56, 59, 62, 63,
-        77, 78, 79, 81, 83, 87, 89, 97, 99, 110, 111, 107, 158, 160, 201, 202, 204, 218, 229, 231, 240, 257, 273, -1};
-int py_call[] = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 21, 39, 41, 42, 56, 59, 62, 63,
-        77, 78, 79, 81, 83, 87, 89, 97, 99, 110, 111, 107, 158, 160, 201, 202, 204, 218, 229, 231, 240, 257, 273, -1};
+int allow_system_call[] = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 21, 39, 41, 42, 56, 59, 62, 63,
+                           77, 78, 79, 81, 83, 87, 89, 97, 99, 110, 111, 107, 158, 160, 201, 202, 204, 218, 229, 231, 240, 257, 273, -1
+                          };
 #endif
+
+langConfig *langCfg;
+
+void set_lang_config() {
+    switch(lang) {
+    case LANG_C:
+        langCfg = new cConfig();
+        return;
+    case LANG_CPP:
+        langCfg = new cppConfig();
+        return;
+    case LANG_JAVA:
+        langCfg = new javaConfig();
+        return;
+    case LANG_PY2:
+        langCfg = new py2Config();
+        return;
+    case LANG_PY3:
+        langCfg = new py3Config();
+        return;
+    }
+    exit(OJ_SE);
+}
 
 int get_proc_status(int pid, const char *type) {
     FILE * fp;
@@ -35,12 +54,15 @@ int get_proc_status(int pid, const char *type) {
 
 void run_judge(const char *path) {
     char buf[128];
+    // 线程优先度最低
     if(nice(19) == -1) {
-        warning("nice is error");
+        warning("nice is error\n");
     }
-    if(lang == LANG_JAVA) {
-        execcmd("chmod +x ./Main.class");
+    // 转为可执行文件
+    if(langCfg->needChmodXFile) {
+        langCfg->chmodXFile();
     }
+    // 转换用户id
     while(setgid(POORUID) != 0) ;
     while(setuid(POORUID) != 0) ;
     while(setresuid(POORUID, POORUID, POORUID) != 0) ;
@@ -49,7 +71,7 @@ void run_judge(const char *path) {
     if(freopen(buf, "r", stdin));
     if(freopen("user.out", "w", stdout));
     if(freopen("error.out", "w", stderr));
-
+    //允许进程追踪
     ptrace(PTRACE_TRACEME, 0, NULL, NULL);
 
     struct rlimit LIM;
@@ -59,51 +81,35 @@ void run_judge(const char *path) {
     alarm(time_limit_second << 3);
 
     // // file limit 8MB
-     if(spj) {
-         LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
-     } else {
-         sprintf(buf, "%s.out", path);
-         LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
-     }
-     setrlimit(RLIMIT_FSIZE, &LIM);
+    if(spj) {
+        LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
+    } else {
+        sprintf(buf, "%s.out", path);
+        LIM.rlim_max = LIM.rlim_cur = get_file_size(buf) << 1;
+    }
+    setrlimit(RLIMIT_FSIZE, &LIM);
 
     // set the stack 64MB
     LIM.rlim_cur = STD_MB << 6;
     LIM.rlim_max = STD_MB << 6;
     setrlimit(RLIMIT_STACK, &LIM);
 
-    // set the memory *1K + 1K
-    // unsigned long 免得溢出
-    if(lang != LANG_JAVA) {
-	    LIM.rlim_cur = ((rlim_t)memory_limit << 10) + 1024;
-	    LIM.rlim_max = ((rlim_t)memory_limit << 10) + 1024;
+    // RLIMIT_AS-> byte, so set the memory *1K + 1MB
+    // unsigned long 免得溢出.其他语言一直卡不了。。
+    if(lang == LANG_C || lang == LANG_CPP) {
+        LIM.rlim_cur = ((rlim_t)memory_limit << 10) + STD_MB;
+        LIM.rlim_max = ((rlim_t)memory_limit << 10) + STD_MB;
         setrlimit(RLIMIT_AS, &LIM);
-	}
-
-    LIM.rlim_cur = LIM.rlim_max = 1;
-    if(lang == LANG_JAVA) {
-    	LIM.rlim_cur = LIM.rlim_max = 80;
     }
+
+    LIM.rlim_cur = LIM.rlim_max = langCfg->run_RLIMIT_NPROC;
     setrlimit(RLIMIT_NPROC, &LIM);
 
-    if(lang == LANG_C || lang == LANG_CPP) {
-        execl("./Main", "./Main", (char *) NULL);
-    } else if(lang == LANG_JAVA) {
-        char java_xms[64], java_xmx[64];
-        sprintf(java_xms, "-Xms%dm", (memory_limit >> 10) + 1);
-        sprintf(java_xmx, "-Xmx%dm", (memory_limit >> 10) + 2);
-        if(execl("/usr/bin/java", "/usr/bin/java", java_xms, java_xmx, "-Xss64m", "Main", (char *) NULL)==-1){
-            printf("java run wrong");
-        }
-    } else if(lang == LANG_PY2){
-        if(execl("/usr/bin/python", "./Main.py", (char *) NULL)==-1){
-            printf("python run wrong");
-        }
-    } if(lang == LANG_PY3){
-        if(execl("/usr/bin/python3", "./Main.py", (char *) NULL)==-1){
-            printf("python run wrong");
-        }
+    if(langCfg->run_cmd() == -1) {
+        warning("运行失败，语言编号：%d\n", lang);
+        exit(OJ_SE);
     }
+
     fflush(stdout);
     fflush(stderr);
     exit(0);
@@ -116,17 +122,12 @@ int watch_judge(pid_t pid) {
     struct user_regs_struct regs;
     struct rusage rus;
     memory_used = get_proc_status(pid, "VmRSS:");
+    // http://blog.csdn.net/edonlii/article/details/8717029
     while(1) {
         wait4(pid, &status, 0, &rus);
-        if(lang == LANG_JAVA) {
-        	//java use page memory
-        	//ru_minflt -> miss page time
-        	//getpagesize -> Byte
-            tmp_mem = rus.ru_minflt * (getpagesize() >> 10);
-        } else {
-            tmp_mem = get_proc_status(pid, "VmPeak:");
-        }
-        //tmp_mem = rus.ru_maxrss;
+
+        tmp_mem = langCfg->isPageMemory ? rus.ru_minflt * (getpagesize() >> 10) : get_proc_status(pid, "VmPeak:");
+
         if(memory_used < tmp_mem) memory_used = tmp_mem;
         if(memory_used > memory_limit) {
             ptrace(PTRACE_KILL, pid, NULL, NULL);
@@ -199,9 +200,10 @@ int watch_judge(pid_t pid) {
             printf("检测到错误文件\n");
 #endif // DEBUG
             ptrace(PTRACE_KILL, pid, NULL, NULL);
-            flag = OJ_RE;
+            flag = langCfg->needFixError ? langCfg->fixError(): OJ_RE;
             break;
         }
+        //读取系统调用
         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
         if (regs.SYSTEM_CALL < 512 && system_call[regs.SYSTEM_CALL] != 0) {
 #ifdef DEBUG
@@ -217,12 +219,18 @@ int watch_judge(pid_t pid) {
         }
         ptrace(PTRACE_SYSCALL, pid, NULL, NULL);
     }
-    time_used = rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000;
-    time_used += rus.ru_stime.tv_sec * 1000 + rus.ru_stime.tv_usec / 1000;
+    int t_time = rus.ru_utime.tv_sec * 1000 + rus.ru_utime.tv_usec / 1000 + rus.ru_stime.tv_sec * 1000 + rus.ru_stime.tv_usec / 1000;
+    if(t_time > time_used)
+        time_used = t_time;
 
     if(flag == OJ_TLE || time_used > time_limit) {
         time_used = time_limit;
         return OJ_TLE;
+    }
+
+    if(flag == OJ_MLE || memory_used > memory_limit) {
+        memory_used = memory_limit;
+        return OJ_MLE;
     }
     return flag;
 }
@@ -271,25 +279,19 @@ unsigned run_test() {
 int compile() {
     pid_t pid = fork();
     if (pid == 0) {
-         struct rlimit LIM;
+        struct rlimit LIM;
         // 用时10s
         LIM.rlim_cur = LIM.rlim_max = 10;
         setrlimit(RLIMIT_CPU, &LIM);
-
-        // 加载文件16mb
+        // 编译输出文件16mb
         LIM.rlim_max =  LIM.rlim_cur = STD_MB << 4;
         setrlimit(RLIMIT_FSIZE, &LIM);
-
-        // java虚拟内存 512mb .但不知为什么设为11才不报错。。。。
-        if(lang == LANG_JAVA) {
-            LIM.rlim_max = STD_MB << 11;
-            LIM.rlim_cur = STD_MB << 11;
-        } else {
-            LIM.rlim_max = STD_MB << 8;
-            LIM.rlim_cur = STD_MB << 8;
+        // 内存限制
+        if(langCfg->compile_RLIMIT_AS != 0) {
+            LIM.rlim_max = LIM.rlim_cur = langCfg->compile_RLIMIT_AS;
             setrlimit(RLIMIT_AS, &LIM);
         }
-
+        //转换运行地址，防止include攻击
         if(chroot(RUN_PATH));
 
         if(setgid(POORUID) != 0) return 1;
@@ -297,20 +299,9 @@ int compile() {
         if(setresuid(POORUID, POORUID, POORUID) != 0) return 1;
 
         if(freopen("./ce.txt", "w", stderr));
-        if(lang == LANG_C) {
-            if (execlp("gcc", "gcc", "-o", "Main", "./Main.c", "-std=c99","-lm", "-Wall", "--static",
-                       "-std=c99", "-O2", "-DONLINE_JUDGE", (char *)NULL) == -1) {
-                exit(1);
-            }
-        } else if(lang == LANG_CPP){
-            if (execlp("g++", "g++", "-o", "Main", "./Main.cpp", "-std=c++11", "-lm", "-Wall","--static",
-                       "-O2", "-DONLINE_JUDGE", (char *)NULL) == -1) {
-                exit(1);
-            }
-        } else if(lang == LANG_JAVA){
-            if (execlp("javac", "javac", "-encoding", "UTF-8", "-g:none", "-nowarn", "./Main.java", (char *)NULL) == -1) {
-                exit(1);
-            }
+        if(langCfg->compile_cmd() == -1) {
+            warning("编译失败，语言编号：%d\n", lang);
+            exit(OJ_SE);
         }
         exit(0);
     } else {
@@ -324,27 +315,11 @@ int compile() {
 }
 
 int solve() {
-    if(lang != LANG_PY2 && lang != LANG_PY3) {
-        if (compile()) return OJ_CE;
-    }
-    if(lang == LANG_C || lang == LANG_CPP) {
-        for (int i = 0; c_call[i] != -1; i++) {
-            system_call[c_call[i]] = -1;
-        }
-    } else if(lang == LANG_JAVA) {
-        for (int i = 0; java_call[i] != -1; i++) {
-            system_call[java_call[i]] = -1;
-        }
-        memory_limit <<= 1;
-        time_limit <<=1;
-        time_limit_second <<= 1;
-    } else if(lang == LANG_PY2 || lang == LANG_PY3) {
-        for (int i = 0; py_call[i] != -1; i++) {
-            system_call[py_call[i]] = -1;
-        }
-        memory_limit <<= 2;
-        time_limit <<=2;
-        time_limit_second <<= 2;
+    if (langCfg->compile && compile()) return OJ_CE;
+    memory_limit *= langCfg->memoty_bonus;
+    time_limit *= langCfg->time_bonus;
+    for (int i = 0; allow_system_call[i] != -1; i++) {
+        system_call[allow_system_call[i]] = -1;
     }
     return run_test();
 }

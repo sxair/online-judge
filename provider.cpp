@@ -61,7 +61,7 @@ void set_status(unsigned status) {
             return ;
         }
         if(status == OJ_CE) set_ce();
-        execsql("UPDATE `oj_status` SET `status`=%u,`time`=%d,`memory`=%d WHERE id=%u", status, time_used, memory_used, status_id);
+        execsql("UPDATE `oj_status` SET `status`=%u,`time`=%u,`memory`=%u WHERE id=%u", status, time_used, memory_used, status_id);
         if(status == OJ_AC) {
             execsql("UPDATE `oj_problems` SET `accepted`= `accepted` + 1 WHERE id=%u", problem_id);
             execsql("UPDATE `user_infos` SET `accepted`= `accepted` + 1 WHERE id=%u", user_id);
@@ -80,7 +80,7 @@ WHERE `user_id`=%u AND `problem_id`=%u AND `accepted` = 0)", problem_id, user_id
         if(status == OJ_CE) {
             set_oc_status(OJ_CE);
         } else {
-            execsql("UPDATE `admin_status` SET `status` = %d WHERE id=%d", status, status_id);
+            execsql("UPDATE `admin_status` SET `status` = %d, `time` = %u, `memory`=%u WHERE id=%d", status, time_used, memory_used, status_id);
         }
     }
 }
