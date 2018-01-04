@@ -1,6 +1,6 @@
 #include "soj-inc/solve.h"
 
-int system_call[512];
+int system_call[522];
 
 #ifdef __i386
 int allow_system_call[] = {3, 4, 5, 6, 11, 33, 45, 85, 91, 116, 120, 122, 125, 140, 174, 175, 191, 192, 195,
@@ -33,6 +33,10 @@ void set_lang_config() {
         return;
     }
     exit(OJ_SE);
+}
+
+bool can_system_call(int s) {
+    return s < 512 && system_call[s] != 0;
 }
 
 int get_proc_status(int pid, const char *type) {
@@ -205,7 +209,7 @@ int watch_judge(pid_t pid) {
         }
         //读取系统调用
         ptrace(PTRACE_GETREGS, pid, NULL, &regs);
-        if (regs.SYSTEM_CALL < 512 && system_call[regs.SYSTEM_CALL] != 0) {
+        if (can_system_call(regs.SYSTEM_CALL)) {
 #ifdef DEBUG
             //   printf("use system call:%llu\n", regs.SYSTEM_CALL);
 #endif // DEBUG

@@ -2,6 +2,7 @@
 #define COMPARE_H_INCLUDED
 
 #include "support.h"
+#include "solve.h"
 
 /*
 * 判断两个文件夹是否相同，若为spj则运行spj

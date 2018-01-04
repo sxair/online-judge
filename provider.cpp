@@ -44,7 +44,8 @@ void set_oc_status(int c) {
     if(c) {
         status = OJ_CE;
     } else {
-        execcmd("cp ./Main %s/%u/Main", DATA_PATH, status_id);
+        execcmd("mkdir -p %s/%u", DATA_PATH, true_problem_id);
+        execcmd("cp -f Main %s/%u/spj", DATA_PATH, true_problem_id);
     }
     s = sql + strlen("UPDATE `admin_status` SET `ce` = '");
     mysql_real_escape_string(conn, s, ce_buf,strlen(ce_buf));

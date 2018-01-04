@@ -24,12 +24,61 @@ bool ispe(char c) {
     return c == ' ' || c == '\n' || c == '\r' || c == '\t';
 }
 
+void run_compare(const char *pro,const char *user) {
+    char buf[128];
+
+    // 转换用户id
+    while(setgid(POORUID) != 0) ;
+    while(setuid(POORUID) != 0) ;
+    while(setresuid(POORUID, POORUID, POORUID) != 0) ;
+
+    if(freopen("user.out", "w", stdout));
+    if(freopen("error.out", "w", stderr));
+
+    struct rlimit LIM;
+    LIM.rlim_max = LIM.rlim_cur = 10;
+    setrlimit(RLIMIT_CPU, &LIM);
+    alarm(10);
+
+    // file limit 8MB
+    LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
+    setrlimit(RLIMIT_FSIZE, &LIM);
+
+    // set the stack 64MB
+    LIM.rlim_cur = STD_MB << 6;
+    LIM.rlim_max = STD_MB << 6;
+    setrlimit(RLIMIT_STACK, &LIM);
+
+    LIM.rlim_cur = STD_MB << 7;
+    LIM.rlim_max = STD_MB << 7;
+    setrlimit(RLIMIT_AS, &LIM);
+
+    if(execl("./spj", "./spj", pro, user, (char *) NULL) == -1) {
+        warning("运行失败，语言编号：%d\n", lang);
+        exit(OJ_SE);
+    }
+
+    fflush(stdout);
+    fflush(stderr);
+    exit(0);
+}
+
+int watch_compare(pid_t pid) {
+    int status;
+    waitpid(pid, &status, 0);
+    if(WIFEXITED(status)) {
+        return WEXITSTATUS(status) == 0 ? OJ_AC : OJ_WA;
+    }
+    return OJ_WA;
+}
+
 int check_ans_spj(const char *pro,const char *user) {
+    execcmd("cp -f %s/%d/spj ./spj", DATA_PATH, true_problem_id);
     pid_t pid = fork();
     if(pid == 0) {
-        //run_judge(buf);
+        run_compare(pro, user);
     } else {
-        //return watch_judge(pid);
+        return watch_compare(pid);
     }
     exit(0);
 }
