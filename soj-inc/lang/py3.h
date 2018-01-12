@@ -16,7 +16,7 @@ struct py3Config: langConfig {
         needFixError = false;
     }
     int run_cmd() {
-        return execl("/usr/bin/python3", "./Main.py", (char *) NULL);
+        return execl("/usr/bin/python3", "python3", "./Main.py", (char *) NULL);
     }
 };
 

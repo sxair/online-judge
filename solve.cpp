@@ -7,8 +7,8 @@ int allow_system_call[] = {3, 4, 5, 6, 11, 33, 45, 85, 91, 116, 120, 122, 125, 1
                            197, 220, 240, 243, 252, 258, 295, 311, -1
                           };
 #else
-int allow_system_call[] = {0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 21, 39, 41, 42, 56, 59, 62, 63,
-                           77, 78, 79, 81, 83, 87, 89, 97, 99, 110, 111, 107, 158, 160, 201, 202, 204, 218, 229, 231, 240, 257, 273, -1
+int allow_system_call[] = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 16, 21, 32, 39, 41, 42, 56, 59, 62, 63, 72,
+                           77, 78, 79, 81, 83, 87, 89, 97, 99, 102, 104, 108, 110, 111, 107, 131, 158, 160, 201, 202, 204, 218, 229, 231, 240, 257, 273, -1
                           };
 #endif
 
@@ -66,6 +66,9 @@ void run_judge(const char *path) {
     if(langCfg->needChmodXFile) {
         langCfg->chmodXFile();
     }
+
+    if(chroot(RUN_PATH));
+
     // 转换用户id
     while(setgid(POORUID) != 0) ;
     while(setuid(POORUID) != 0) ;
@@ -84,7 +87,7 @@ void run_judge(const char *path) {
     // 防止sleep或其他
     alarm(time_limit_second << 3);
 
-    // // file limit 8MB
+    // file limit 8MB
     if(spj) {
         LIM.rlim_max = LIM.rlim_cur = STD_MB << 3;
     } else {

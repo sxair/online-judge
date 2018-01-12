@@ -16,7 +16,7 @@ struct py2Config: langConfig {
         needFixError = false;
     }
     int run_cmd() {
-        return execl("/usr/bin/python", "./Main.py", (char *) NULL);
+        return execl("/usr/bin/python", "python", "./Main.py", (char *) NULL);
     }
 };
 

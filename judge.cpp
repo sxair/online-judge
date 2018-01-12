@@ -233,10 +233,10 @@ void start_judge() {
 }
 
 int main(int argc, char** argv) {
-    // 创建运行目录
-    set_file();
     // 一台服务器只允许一个judge进程
     chk_running();
+    // 创建运行目录
+    set_file();
 #ifndef DEBUG
     daemon();
     //http://www.cnblogs.com/makefile/p/3751390.html
