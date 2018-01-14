@@ -3,6 +3,8 @@
 
 #include "lang.h"
 
+#define LANG_JAVA 3
+
 extern unsigned memory_limit;
 
 struct javaConfig: langConfig {

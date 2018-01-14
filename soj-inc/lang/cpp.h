@@ -3,6 +3,8 @@
 
 #include "lang.h"
 
+#define LANG_CPP 2
+
 struct cppConfig: langConfig {
     cppConfig() {
         lang_id = 2; // 语言id

@@ -3,6 +3,8 @@
 
 #include "lang.h"
 
+#define LANG_C 1
+
 struct cConfig: langConfig {
     cConfig() {
         lang_id = 1; // 语言id

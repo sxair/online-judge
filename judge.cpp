@@ -74,14 +74,14 @@ void chk_running() {
     fl.l_type = F_WRLCK;//lock for write
     fl.l_whence = SEEK_SET;
     if (fcntl(fd, F_SETLK, &fl) < 0) {
-        printf("lock %s failed:%s",buf,strerror(errno));
+        printf("oj already running.lock %s failed:%s",buf,strerror(errno));
         exit(1);
     }
     if(!ftruncate(fd, 0)) { // clear content
         sprintf(buf, "%d", getpid());
         int t = write(fd, buf, strlen(buf));
     }
-    close(fd);
+    //close(fd); 不可关闭
 }
 
 void daemon(void) {
@@ -94,6 +94,7 @@ void daemon(void) {
     printf("daemon ceate success\n judging now\n");
     setsid(); // give son a id
     printf("judge server pid: %d\n",getpid());
+    chk_running(); //重新锁一遍
     umask(0); // if create file then 777
     close(0);
     close(1);

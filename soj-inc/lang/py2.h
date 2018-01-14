@@ -3,6 +3,8 @@
 
 #include "lang.h"
 
+#define LANG_PY2 4
+
 struct py2Config: langConfig {
     py2Config() {
         lang_id = 4; // 语言id

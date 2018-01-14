@@ -3,6 +3,8 @@
 
 #include "lang.h"
 
+#define LANG_PY3 5
+
 struct py3Config: langConfig {
     py3Config() {
         lang_id = 5; // 语言id

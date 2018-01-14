@@ -25,12 +25,6 @@
 #define POORUID  1001 // 低权限用户 see /etc/passwd
 #define POORUSER "judge"
 
-#define LANG_C 1
-#define LANG_CPP 2
-#define LANG_JAVA 3
-#define LANG_PY2 4
-#define LANG_PY3 5
-
 #define OJ_CI 1 //Compiling
 #define OJ_CE 2
 #define OJ_AC 3
