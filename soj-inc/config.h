@@ -2,6 +2,7 @@
 #define CONFIG_H_INCLUDED
 
 #define JUDGE_ID 1 //评判机编号。用于恢复评判机失败评判队列
+#define MAX_JUDGE_ID 1000 // 最大评测机数量，用于恢复评判机运行中的队列
 
 #define DB_HOST  "127.0.0.1"
 #define DB_NAME  "soj"

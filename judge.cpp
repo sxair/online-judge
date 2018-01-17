@@ -1,6 +1,7 @@
 #include "soj-inc/support.h"
 #include <fcntl.h>
 
+int judge_server_id;
 extern MYSQL *conn;
 char run_path_fix[35];
 
@@ -74,7 +75,7 @@ void chk_running() {
     fl.l_type = F_WRLCK;//lock for write
     fl.l_whence = SEEK_SET;
     if (fcntl(fd, F_SETLK, &fl) < 0) {
-        printf("oj already running.lock %s failed:%s",buf,strerror(errno));
+        printf("lock %s failed:%s",buf,strerror(errno));
         exit(1);
     }
     if(!ftruncate(fd, 0)) { // clear content
@@ -141,7 +142,9 @@ bool set_judges() {
     if(conn == NULL && !connect_mysql()) {
         return false;
     }
-    execsql("call get_judges(%d,%d)", JUDGE_ID, MAX_RUN << 1);
+
+    execsql("UPDATE judges set running=%d WHERE running=0 LIMIT %d", JUDGE_ID, MAX_RUN << 1);
+    execsql("SELECT status_id,judge_for FROM judges WHERE running=%d LIMIT %d", JUDGE_ID, MAX_RUN << 1);
     // http://www.jb51.net/article/19661.htm
     do {
         MYSQL_RES *res = mysql_store_result(conn);
@@ -155,6 +158,7 @@ bool set_judges() {
             res = NULL;
         }
     } while(!mysql_next_result(conn));
+    execsql("UPDATE judges set running=%d WHERE running=%d", JUDGE_ID + MAX_JUDGE_ID, JUDGE_ID);
     printf("get %d judges\n", queue_top);
     return true;
 }
@@ -202,7 +206,7 @@ void start_judge() {
     int i;
     unsigned long long t;
     //把之前未解决的重新加入队列
-    execsql("update judges set running = 0 where running = %d", JUDGE_ID);
+    execsql("update judges set running = 0 where running = %d", judge_server_id + MAX_JUDGE_ID);
     while(1) {
         // 获取空闲位置
         if(run_cnt < MAX_RUN) {
@@ -238,6 +242,9 @@ int main(int argc, char** argv) {
     chk_running();
     // 创建运行目录
     set_file();
+    if(argc > 1) {
+        judge_server_id = atoi(argv[1]);
+    } else judge_server_id = JUDGE_ID;
 #ifndef DEBUG
     daemon();
     //http://www.cnblogs.com/makefile/p/3751390.html

@@ -67,8 +67,6 @@ void run_judge(const char *path) {
         langCfg->chmodXFile();
     }
 
-    if(chroot(RUN_PATH));
-
     // 转换用户id
     while(setgid(POORUID) != 0) ;
     while(setuid(POORUID) != 0) ;
@@ -116,7 +114,6 @@ void run_judge(const char *path) {
         warning("运行失败，语言编号：%d\n", lang);
         exit(OJ_SE);
     }
-
     fflush(stdout);
     fflush(stderr);
     exit(0);

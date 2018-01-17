@@ -32,8 +32,7 @@ void run_compare(const char *pro,const char *user) {
     while(setuid(POORUID) != 0) ;
     while(setresuid(POORUID, POORUID, POORUID) != 0) ;
 
-    if(freopen("user.out", "w", stdout));
-    if(freopen("error.out", "w", stderr));
+    //if(freopen("spj.out", "w", stdout));
 
     struct rlimit LIM;
     LIM.rlim_max = LIM.rlim_cur = 10;
@@ -52,14 +51,16 @@ void run_compare(const char *pro,const char *user) {
     LIM.rlim_cur = STD_MB << 7;
     LIM.rlim_max = STD_MB << 7;
     setrlimit(RLIMIT_AS, &LIM);
-
-    if(execl("./spj", "./spj", pro, user, (char *) NULL) == -1) {
+    int l = strlen(pro);
+    strncpy(buf, pro, l - 3);
+    buf[l - 3] = 0;
+    sprintf(buf, "%sin", buf);
+    if(execl("./spj", "./spj", pro, user, buf,(char *) NULL) == -1) {
         warning("运行失败，语言编号：%d\n", lang);
         exit(OJ_SE);
     }
 
-    fflush(stdout);
-    fflush(stderr);
+    //fflush(stdout);
     exit(0);
 }
 
