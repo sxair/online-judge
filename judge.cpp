@@ -38,8 +38,8 @@ void set_file() {
     for (int i = 0; i < MAX_RUN; i++) {
         execcmd("mkdir -p %s/%s%d", RUN_PATH, run_path_fix, i);
         if(execcmd("chown %s:%s %s/%s%d", POORUSER, POORUSER, RUN_PATH, run_path_fix, i)) {
-        	warning("低权限 %s 用户不存在", POORUSER);
-        	exit(0);
+            warning("低权限 %s 用户不存在", POORUSER);
+            exit(0);
         }
     }
     execcmd("mkdir -p %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
@@ -123,14 +123,14 @@ void run(unsigned long long judge_id, int run_id) {
     char judgeid[68], run_room[37];
     sprintf(judgeid, "%llu",judge_id);
     sprintf(run_room, "%s%d", run_path_fix, run_id);
-    #ifdef TEST
+#ifdef TEST
     sleep(2);
-    #else
+#else
     if (execl("./run-client", "./run-client", judgeid, run_room, (char *)NULL) == -1) {
         warning("error:run程序无法运行\n");
         exit(0);
     }
-    #endif // TEST
+#endif // TEST
 }
 
 int queue_top, queue_last, run_cnt;
@@ -146,18 +146,16 @@ bool set_judges() {
     execsql("UPDATE judges set running=%d WHERE running=0 LIMIT %d", JUDGE_ID, MAX_RUN << 1);
     execsql("SELECT status_id,judge_for FROM judges WHERE running=%d LIMIT %d", JUDGE_ID, MAX_RUN << 1);
     // http://www.jb51.net/article/19661.htm
-    do {
-        MYSQL_RES *res = mysql_store_result(conn);
-        MYSQL_ROW row;
-        if(res != NULL) {
-            while ((row = mysql_fetch_row(res)) != NULL) {
-                judge_queue[queue_top] = atoi(row[0]);
-                judge_queue[queue_top++] |= atoll(row[1])<<32;
-            }
-            mysql_free_result(res);
-            res = NULL;
+    MYSQL_RES *res = mysql_store_result(conn);
+    MYSQL_ROW row;
+    if(res != NULL) {
+        while ((row = mysql_fetch_row(res)) != NULL) {
+            judge_queue[queue_top] = atoi(row[0]);
+            judge_queue[queue_top++] |= atoll(row[1])<<32;
         }
-    } while(!mysql_next_result(conn));
+        mysql_free_result(res);
+        res = NULL;
+    }
     execsql("UPDATE judges set running=%d WHERE running=%d", JUDGE_ID + MAX_JUDGE_ID, JUDGE_ID);
     printf("get %d judges\n", queue_top);
     return true;
