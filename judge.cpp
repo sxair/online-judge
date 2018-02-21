@@ -30,22 +30,10 @@ void set_file() {
     }
     //删除run内内容 !必需umount后才能删除
     execcmd("rm -rf %s", RUN_PATH);
-    //随机run路径。防止include攻击
-    srand((unsigned)time(NULL));
-    for(int i=0; i<32; i++) {
-        run_path_fix[i] = rand() % 26 + 'a' + (rand() & 1) * ('A' - 'a');
-    }
-    for (int i = 0; i < MAX_RUN; i++) {
-        execcmd("mkdir -p %s/%s%d", RUN_PATH, run_path_fix, i);
-        if(execcmd("chown %s:%s %s/%s%d", POORUSER, POORUSER, RUN_PATH, run_path_fix, i)) {
-            warning("低权限 %s 用户不存在", POORUSER);
-            exit(0);
-        }
-    }
+
+    //挂载文件
     execcmd("mkdir -p %s/usr %s/bin %s/lib %s/etc %s/proc", RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH, RUN_PATH);
-
     // remember to umount!
-
 #ifdef __x86_64__
     execcmd("mkdir -p %s/lib64",RUN_PATH);
     execcmd("mount --bind /lib64 %s/lib64",RUN_PATH);
@@ -55,6 +43,13 @@ void set_file() {
     execcmd("mount --bind /lib %s/lib",RUN_PATH);
     execcmd("mount --bind /etc %s/etc",RUN_PATH);
     execcmd("mount --bind /proc %s/proc",RUN_PATH);
+
+    umask(0077); // 只有自己有权限处理自己的文件
+    for (int i = 0; i < MAX_RUN; i++) {
+        execcmd("mkdir -p %s/run%d", RUN_PATH, i);
+        execcmd("useradd judge%d -u %d", i, JUDGER_BASE_ID + i);
+        execcmd("chown judge%d:judge%d %s/run%d", i, i, RUN_PATH, i);
+    }
 }
 
 /**
@@ -96,7 +91,6 @@ void daemon(void) {
     setsid(); // give son a id
     printf("judge server pid: %d\n",getpid());
     chk_running(); //重新锁一遍
-    umask(0); // if create file then 777
     close(0);
     close(1);
     close(2);
@@ -143,8 +137,8 @@ bool set_judges() {
         return false;
     }
 
-    execsql("UPDATE judges set running=%d WHERE running=0 LIMIT %d", JUDGE_ID, MAX_RUN << 1);
-    execsql("SELECT status_id,judge_for FROM judges WHERE running=%d LIMIT %d", JUDGE_ID, MAX_RUN << 1);
+    execsql("UPDATE judges set running=%d WHERE running=0 LIMIT %d", judge_server_id, MAX_RUN << 1);
+    execsql("SELECT status_id,judge_for FROM judges WHERE running=%d LIMIT %d", judge_server_id, MAX_RUN << 1);
     // http://www.jb51.net/article/19661.htm
     MYSQL_RES *res = mysql_store_result(conn);
     MYSQL_ROW row;
@@ -156,7 +150,7 @@ bool set_judges() {
         mysql_free_result(res);
         res = NULL;
     }
-    execsql("UPDATE judges set running=%d WHERE running=%d", JUDGE_ID + MAX_JUDGE_ID, JUDGE_ID);
+    execsql("UPDATE judges set running=%d WHERE running=%d", judge_server_id + MAX_JUDGE_ID, judge_server_id);
     printf("get %d judges\n", queue_top);
     return true;
 }

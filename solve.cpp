@@ -66,11 +66,10 @@ void run_judge(const char *path) {
     if(langCfg->needChmodXFile) {
         langCfg->chmodXFile();
     }
-
     // 转换用户id
-    while(setgid(POORUID) != 0) ;
-    while(setuid(POORUID) != 0) ;
-    while(setresuid(POORUID, POORUID, POORUID) != 0) ;
+    while(setgid(judger_id) != 0) ;
+    while(setuid(judger_id) != 0) ;
+    while(setresuid(judger_id, judger_id, judger_id) != 0) ;
 
     sprintf(buf, "%s.in", path);
     if(freopen(buf, "r", stdin));
@@ -298,9 +297,9 @@ int compile() {
         //转换运行地址，防止include攻击
         if(chroot(RUN_PATH));
 
-        if(setgid(POORUID) != 0) return 1;
-        if(setuid(POORUID) != 0) return 1;
-        if(setresuid(POORUID, POORUID, POORUID) != 0) return 1;
+        if(setgid(judger_id) != 0) return 1;
+        if(setuid(judger_id) != 0) return 1;
+        if(setresuid(judger_id, judger_id, judger_id) != 0) return 1;
 
         if(freopen("./ce.txt", "w", stderr));
         if(langCfg->compile_cmd() == -1) {

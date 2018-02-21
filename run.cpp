@@ -2,9 +2,8 @@
 
 char RUN_ROOM[64];
 int run_id; // run in which room
-
+int judger_id;
 unsigned status_id, judge_for;
-
 unsigned time_limit, time_limit_second, memory_limit,time_used, memory_used;
 int spj, judge_cnt, lang, true_problem_id;
 
@@ -17,8 +16,9 @@ int main(int argc, char **argv) {
     unsigned long long judge_id = strtoull(argv[1],0,10);
     status_id = (unsigned)(judge_id & 0xffffffff);
     judge_for = (unsigned)(judge_id >> 32);
-
-    sprintf(RUN_ROOM, "%s/%s", RUN_PATH, argv[2]);
+    run_id = atoi(argv[2]);
+    judge_id = JUDGER_BASE_ID + run_id;
+    sprintf(RUN_ROOM, "%s/run%d", RUN_PATH, run_id);
     execcmd("rm -f %s/*",RUN_ROOM);
     if(chdir(RUN_ROOM)) {
         warning("chdir to %s failed\n", RUN_ROOM);

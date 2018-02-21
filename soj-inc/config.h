@@ -3,6 +3,7 @@
 
 #define JUDGE_ID 1 //评判机编号。用于恢复评判机失败评判队列
 #define MAX_JUDGE_ID 1000 // 最大评测机数量，用于恢复评判机运行中的队列
+#define JUDGER_BASE_ID 10000 // 创建评测用户的最小id
 
 #define DB_HOST  "127.0.0.1"
 #define DB_NAME  "soj"
@@ -22,9 +23,6 @@
 #define MAX_BUFF 2048 // log buff
 #define MAX_TEST 10000 // 测试数据的数量
 #define MAX_RUN_TIME 60 //second
-
-#define POORUID  1001 // 低权限用户 see /etc/passwd
-#define POORUSER "judge"
 
 #define OJ_CI 1 //Compiling
 #define OJ_CE 2

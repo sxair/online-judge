@@ -22,7 +22,6 @@ extern const long STD_MB;
 #define SYSTEM_CALL orig_eax
 #endif // __x86_64__
 
-
 bool can_system_call(int s);
 
 /**

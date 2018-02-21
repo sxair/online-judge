@@ -26,11 +26,10 @@ bool ispe(char c) {
 
 void run_compare(const char *pro,const char *user) {
     char buf[128];
-
     // 转换用户id
-    while(setgid(POORUID) != 0) ;
-    while(setuid(POORUID) != 0) ;
-    while(setresuid(POORUID, POORUID, POORUID) != 0) ;
+    while(setgid(judger_id) != 0) ;
+    while(setuid(judger_id) != 0) ;
+    while(setresuid(judger_id, judger_id, judger_id) != 0) ;
 
     //if(freopen("spj.out", "w", stdout));
 
